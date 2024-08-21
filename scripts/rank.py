@@ -25,7 +25,13 @@ def parse_arguments():
 def ranking(args, prompts, candidates):
     blender = llm_blender.Blender()
     blender.loadranker("llm-blender/PairRM")
+    print(f"Length of prompts: {len(prompts)}")
+    print(prompts[0])
+    print(f"Length of candidates: {len(candidates)}")
+    print(candidates[0])
     ranks = blender.rank(prompts, candidates, return_scores=True, batch_size=1)
+    print(ranks)
+    print(ranks.shape)
     np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}.npy", ranks)
 
 
@@ -74,7 +80,11 @@ def main(args):
             all_generated.append(gen)
 
     candidates_texts = list(zip(*all_generated))
-    assert len(data) == len(candidates_texts)
+    # assert len(data) == len(candidates_texts)
+
+    # xkp: 0821, disable full dataset checking, to allow using partial data for testing
+    print(len(candidates_texts), len(data))
+    data = data[:len(candidates_texts)]
     print(f'Length of data: {len(data)}')
 
     data_frac = args.data_frac
