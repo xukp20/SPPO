@@ -2,7 +2,6 @@ from datasets import load_dataset
 import json
 import pandas as pd
 import argparse
-import llm_blender
 import os
 import numpy as np
 from transformers import AutoTokenizer
@@ -23,9 +22,16 @@ def parse_arguments():
     return parser.parse_args()
 
 def ranking(args, prompts, candidates):
-    blender = llm_blender.Blender()
-    blender.loadranker("llm-blender/PairRM")
-    ranks = blender.rank(prompts, candidates, return_scores=True, batch_size=1)
+    from RMs.reward_model import PairPreferenceLlama
+    from RMs.ranker import Ranker
+
+    model_name = "RLHFlow/pair-preference-model-LLaMA3-8B"
+    rm = PairPreferenceLlama(model_name, f"cuda:{args.gpu}")
+    ranker = Ranker(rm)
+
+    ranks = ranker.rank(prompts, candidates, batch_size=1)
+    print(ranks)
+    print(ranks.shape)
     np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}.npy", ranks)
 
 
@@ -62,7 +68,7 @@ def main(args):
 
     tokenizer.pad_token = tokenizer.eos_token
 
-    prompts_all = [apply_template(data[idx]["prompt"], tokenizer) for idx in range(len(data))]
+    prompts_all = [d["prompt"] for d in data]
     print(prompts_all[0])
     pairs = args.pairs
     all_generated = []

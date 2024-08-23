@@ -1,6 +1,10 @@
 """
     Abstract class for reward models.
 """
+from typing import List
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 
 class RewardModel:
     def __init__(self):
@@ -18,8 +22,12 @@ class RewardModel:
         """
         bsz = len(prompt)
         num_candidates = len(candidates[0])
-        formatted = self.format_pair(prompt, candidates)
-        inputs = self.format_input(formatted)
+
+        formatted = self.format_pair(prompt, candidates)    # size of (bsz, num_candidates * (num_candidates-1))
+        formatted = self.regroup_formatted(formatted)       # size of (num_candidates * (num_candidates-1), bsz)
+
+        inputs = self.format_input(formatted)   # size of bsz * dict
+
         scores = self.get_scores(inputs)
 
         scores_matrix = torch.zeros(bsz, num_candidates, num_candidates)
@@ -28,7 +36,8 @@ class RewardModel:
         for i in range(num_candidates):
             scores_matrix[:, i, :i] = scores[:, i, :i]
             scores_matrix[:, i, i+1:] = scores[:, i, i:]
-        return scores
+
+        return scores_matrix
     
     def format_pair(self, prompt: List[str], candidate: List[List[str]]):
         """
@@ -52,7 +61,22 @@ class RewardModel:
             - inputs: output of tokenizer of RMs
         """
         raise NotImplementedError
-    
+
+    def regroup_formatted(self, formatted: List[List[str]]):
+        """
+            Regroup formatted inputs.
+            Args:
+            - formatted: (bsz, num_candidates * (num_candidates-1))
+
+            Returns:
+            - regrouped: (num_candidates * (num_candidates-1), bsz)
+        """
+        # from group by batch to group by pair
+        regrouped = []
+        for i in range(len(formatted[0])):
+            regrouped.append([formatted[j][i] for j in range(len(formatted))])
+        return regrouped
+
     def get_scores(self, inputs):
         """
             Get scores from model.
@@ -93,6 +117,7 @@ class PairPreferenceLlama(RewardModel):
         for batch_idx in range(len(prompt)):
             prompt_text = prompt[batch_idx]
             candidates = candidate[batch_idx]
+            batch_formatted = []
             for i in range(len(candidates)):
                 for j in range(len(candidates)):
                     if i != j:
@@ -104,22 +129,24 @@ class PairPreferenceLlama(RewardModel):
                         message = [
                             {"role": "user", "content": prompt},
                         ]
-                        message_str = self.tokenizer_plain.apply_chat_template(message, tokenize=False)
-                        formatted.append(message_str)
-        
+                        message_str = self.tokenizer.apply_chat_template(message, tokenize=False).replace(self.tokenizer.bos_token, "")
+                        batch_formatted.append(message_str)
+            formatted.append(batch_formatted)
+
         return formatted
 
     def format_input(self, formatted: List[List[str]]):
         # apply left padding to align the output logits
-        inputs = self.tokenizer(formatted, padding=True, return_tensors="pt", truncation=True)
+        inputs = []
+        for batch in formatted:
+            inputs.append(self.tokenizer(batch, padding=True, return_tensors="pt", max_length=self.model.config.max_length, add_special_tokens=False))
+        return inputs
 
     def get_scores(self, inputs):
         with torch.no_grad():
-            inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-            # like blender, loop through the second dimension
             scores = []
-            for pair_idx in range(inputs["input_ids"].size(1)):
-                batch_inputs = {k: v[:, pair_idx] for k, v in inputs.items()}
+            for batch_inputs in inputs:
+                batch_inputs = {k: v.to(self.model.device) for k, v in batch_inputs.items()}
                 outputs = self.model(**batch_inputs)
                 # take out the last token logits
                 logits = outputs.logits[:, -1]

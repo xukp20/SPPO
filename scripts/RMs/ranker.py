@@ -1,8 +1,10 @@
 """
     RewardModel and Ranker class for ranking candidates based on pairwise comparisons.
 """
-
-
+from RMs.reward_model import RewardModel
+from typing import List
+import numpy as np
+import torch
 
 # tool copied from blender
 def get_scores_from_cmps(cmp_results, policy="max_logits"):
@@ -46,9 +48,13 @@ class Ranker:
         with torch.no_grad():
             for i in range(0, len(prompt), batch_size):
                 batch = prompt[i:i+batch_size]
+                print(f"batch: {batch}")
                 batch_candidates = candidates[i:i+batch_size]
+                print(f"batch_candidates: {batch_candidates}")
                 pair_wise_scores = self.model.pair_wise_scores(batch, batch_candidates)
+                print(f"pair_wise_scores: {pair_wise_scores}")
                 scores.append(get_scores_from_cmps(pair_wise_scores.cpu().numpy()))
+                print(f"scores: {scores}")
         
         return np.concatenate(scores, axis=0)
 
