@@ -25,8 +25,15 @@ def parse_arguments():
 def ranking(args, prompts, candidates):
     blender = llm_blender.Blender()
     blender.loadranker("llm-blender/PairRM")
-    ranks = blender.rank(prompts, candidates, return_scores=True, batch_size=1)
+    # ranks = blender.rank(prompts, candidates, return_scores=True, batch_size=1)
+    # xkp: 2024/8/24 also return scores
+    ranks, raw_table = blender.rank(prompts, candidates, return_scores=True, batch_size=1, return_raw_table=True)
+    # print(ranks.shape)
+    # print(ranks[0])
+    # print(raw_table.shape)
+    # print(raw_table[0])
     np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}.npy", ranks)
+    np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}_table.npy", raw_table)
 
 
 def split_prompts(prompts, frac_len, data_frac):
@@ -74,11 +81,11 @@ def main(args):
             all_generated.append(gen)
 
     candidates_texts = list(zip(*all_generated))
-    # assert len(data) == len(candidates_texts)
 
     # xkp: 0821, disable full dataset checking, to allow using partial data for testing
+    assert len(data) == len(candidates_texts)
     # NOTE
-    data = data[:len(candidates_texts)]
+    # data = data[:len(candidates_texts)]
     print(f'Length of data: {len(data)}')
 
     data_frac = args.data_frac

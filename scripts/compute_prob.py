@@ -25,7 +25,7 @@ def from_ranks(args):
 
     # only take first 100
     # NOTE
-    data = data.select(range(100))
+    # data = data.select(range(100))
 
     print(f"Length of dataset: {len(data)}")
 
@@ -120,9 +120,9 @@ def prepare_score(args):
     print(f"Saved file to {OUTPATH}/train.parquet")
 
     # Temporary solution to make the code run, cannot use for test/evaluation purpose
-    # test = train_new.sample(n=500)
+    test = train_new.sample(n=500)
     # NOTE
-    test = train_new.sample(n=10)
+    # test = train_new.sample(n=10)
     test.to_parquet(f'{OUTPATH}/test.parquet', index=False)
     print(f"Saved file to {OUTPATH}/test.parquet")
 
