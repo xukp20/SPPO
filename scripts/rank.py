@@ -77,7 +77,7 @@ def main(args):
     # assert len(data) == len(candidates_texts)
 
     # xkp: 0821, disable full dataset checking, to allow using partial data for testing
-    print(len(candidates_texts), len(data))
+    # NOTE
     data = data[:len(candidates_texts)]
     print(f'Length of data: {len(data)}')
 

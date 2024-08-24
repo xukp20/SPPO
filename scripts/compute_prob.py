@@ -22,6 +22,11 @@ def from_ranks(args):
     num_gpu = args.num_gpu
     pairs = args.pairs
     data = load_dataset(args.prompts, split="train")
+
+    # only take first 100
+    # NOTE
+    data = data.select(range(100))
+
     print(f"Length of dataset: {len(data)}")
 
     scores = [0 for _ in range(len(data))]
@@ -115,7 +120,9 @@ def prepare_score(args):
     print(f"Saved file to {OUTPATH}/train.parquet")
 
     # Temporary solution to make the code run, cannot use for test/evaluation purpose
-    test = train_new.sample(n=500)
+    # test = train_new.sample(n=500)
+    # NOTE
+    test = train_new.sample(n=10)
     test.to_parquet(f'{OUTPATH}/test.parquet', index=False)
     print(f"Saved file to {OUTPATH}/test.parquet")
 
@@ -140,6 +147,6 @@ if __name__ == "__main__":
     args = parse_arguments()
     from_ranks(args)
     data = Dataset.from_parquet(f"generated/{args.output_dir}/train.parquet")
-    data.push_to_hub(f"{args.org}/{args.output_dir}_generated", private=True)
+    # data.push_to_hub(f"{args.org}/{args.output_dir}_generated", private=True)
     out_path = prepare_score(args)
-    push_dataset(out_path, args.org)
+    # push_dataset(out_path, args.org)

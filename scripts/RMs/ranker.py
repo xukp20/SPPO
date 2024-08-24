@@ -27,6 +27,7 @@ def get_scores_from_cmps(cmp_results, policy="max_logits"):
     return scores
 
 
+from tqdm import tqdm
 class Ranker:
     def __init__(self,
         model: RewardModel
@@ -46,15 +47,11 @@ class Ranker:
         # 1. to batches
         scores = []
         with torch.no_grad():
-            for i in range(0, len(prompt), batch_size):
+            for i in tqdm(range(0, len(prompt), batch_size), total=len(prompt)//batch_size):
                 batch = prompt[i:i+batch_size]
-                print(f"batch: {batch}")
                 batch_candidates = candidates[i:i+batch_size]
-                print(f"batch_candidates: {batch_candidates}")
                 pair_wise_scores = self.model.pair_wise_scores(batch, batch_candidates)
-                print(f"pair_wise_scores: {pair_wise_scores}")
                 scores.append(get_scores_from_cmps(pair_wise_scores.cpu().numpy()))
-                print(f"scores: {scores}")
         
         return np.concatenate(scores, axis=0)
 

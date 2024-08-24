@@ -139,7 +139,7 @@ class PairPreferenceLlama(RewardModel):
         # apply left padding to align the output logits
         inputs = []
         for batch in formatted:
-            inputs.append(self.tokenizer(batch, padding=True, return_tensors="pt", max_length=self.model.config.max_length, add_special_tokens=False))
+            inputs.append(self.tokenizer(batch, padding=True, return_tensors="pt", add_special_tokens=False))
         return inputs
 
     def get_scores(self, inputs):
