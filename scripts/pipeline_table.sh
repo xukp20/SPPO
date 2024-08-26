@@ -11,7 +11,8 @@ OPTIM="rmsprop"
 PREF="sppo_score"
 NUM=18
 MODEL="mistralai/Mistral-7B-Instruct-v0.2"
-DATASET="synthetic_data_mistral-7b-instruct-sppo-iter1_score"
+# DATASET="synthetic_data_mistral-7b-instruct-sppo-iter1_score"
+DATASET="synthetic_data_mistral-7b-instruct-sppo-iter1_score_table"
 BATCH_SIZE=8
 ACCUMULATE=1
 
@@ -79,7 +80,7 @@ LEVEL1="iter${ITER}_${LEARNING_RATE}_beta${BETA}_${OPTIM}"
 LEVEL2="${LOSS_TYPE}_${PREF}"
 
 #OUTPUT_DIR="checkpoints/${LEVEL1}/${LEVEL2}"
-log_file="iter${ITER}_${LEARNING_RATE}_${BETA}_${OPTIM}_${LOSS_TYPE}_${PREF}"
+log_file="iter${ITER}_table_${LEARNING_RATE}_${BETA}_${OPTIM}_${LOSS_TYPE}_${PREF}"
 
 dataset_name=$(echo "$DATASET" | cut -d '/' -f2)
 new_config_file="recipes/uclaml-sppo/config_full_${dataset_name}.yaml"
@@ -101,7 +102,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --beta=$BETA \
     --optim="$OPTIM" \
     --output_dir="$OUTPUT_DIR" \
-    --run_name="sppo-iter${ITER}" \
+    --run_name="sppo_table-iter${ITER}" \
     --loss_type=$LOSS_TYPE \
     --per_device_train_batch_size=$BATCH_SIZE \
     --gradient_accumulation_steps=$ACCUMULATE \
