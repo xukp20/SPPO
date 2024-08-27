@@ -18,14 +18,16 @@ for i in $(seq 1 $iter_num); do
 
     if [ "$i" -eq 1 ]; then
         OUT="data-llama-3-8b-instruct-sppo-iter${i}" 
+        DATASET="synthetic_data_llama-3-8b-instruct-sppo-iter${i}_score_table"
     else
         OUT="data-llama-3-8b-instruct-sppo-iter${i}-table" 
+        DATASET="synthetic_data_llama-3-8b-instruct-sppo-iter${i}-table_score_table"
     fi
 
     if [ "$i" -lt $start_iter ]; then
         continue
     fi
-
-    bash scripts/generate_table.sh --model $MODEL --prompt $PROMPT --out_path $OUT
-    bash scripts/pipeline_table.sh --model $MODEL --iter $i --dataset "synthetic_data_llama-3-8b-instruct-sppo-iter${i}_score_table" --output_dir $OUTPUT_DIR --num 1
+    
+    # bash scripts/generate_table.sh --model $MODEL --prompt $PROMPT --out_path $OUT
+    bash scripts/pipeline_table.sh --model $MODEL --iter $i --dataset $DATASET --output_dir $OUTPUT_DIR --num 1
 done

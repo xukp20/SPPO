@@ -168,7 +168,7 @@ def prepare_score(args):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    # from_ranks(args)
+    from_ranks(args)
     # data = Dataset.from_parquet(f"generated/{args.output_dir}/train{SUFFIX}.parquet")
     # data.push_to_hub(f"{args.org}/{args.output_dir}_generated", private=True)
     out_path = prepare_score(args)

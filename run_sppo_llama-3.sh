@@ -21,7 +21,7 @@ for i in $(seq 1 $iter_num); do
     if [ "$i" -lt $start_iter ]; then
         continue
     fi
-    
-    bash scripts/generate.sh --model $MODEL --prompt $PROMPT --out_path $OUT
+
+    # bash scripts/generate.sh --model $MODEL --prompt $PROMPT --out_path $OUT
     bash scripts/pipeline.sh --model $MODEL --iter $i --dataset "synthetic_data_llama-3-8b-instruct-sppo-iter${i}_score" --output_dir $OUTPUT_DIR --num 1
 done
