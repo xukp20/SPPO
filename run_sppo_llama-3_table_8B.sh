@@ -6,8 +6,8 @@ export https_proxy="http://127.0.0.1:7890"
 
 # iter_num=3
 SUFFIX="_8B"
-start_iter=1
-iter_num=1
+start_iter=3
+iter_num=3
 for i in $(seq 1 $iter_num); do
     if [ "$i" -eq 1 ]; then
         MODEL="meta-llama/Meta-Llama-3-8B-Instruct"

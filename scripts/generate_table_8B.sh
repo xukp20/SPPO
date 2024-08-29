@@ -53,12 +53,13 @@ FRAC_LEN=$((20800 / ${#AVAILABLE_GPUS[@]}))
 echo "Using frac_len ${FRAC_LEN}"
 
 # check if the output directory exists, if so, skip generating data
-if [ -d "generated/$OUTDIR" ]; then
-    echo "Directory generated/$OUTDIR already exists, skipping generation"
-else
+# if [ -d "generated/$OUTDIR" ]; then
+#     echo "Directory generated/$OUTDIR already exists, skipping generation"
+# else
     (
         data_frac=0
-        for gpu_id in ${AVAILABLE_GPUS[@]}; do
+        # for gpu_id in ${AVAILABLE_GPUS[@]}; do
+        for gpu_id in 0; do
             CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/generate.py --model $MODEL --maxlen 2048 --output_dir "generated/$OUTDIR" --prompts $PROMPTS --pairs $PAIRS --world_size 1 --frac_len $FRAC_LEN --data_frac $data_frac > output_log_${gpu_id}.txt 2>&1 &
             ((data_frac+=1));
         done
@@ -75,7 +76,7 @@ else
     #####################
 
     # frac length 2600 * num_gpus 8 = 20800, should be larger than the length of the dataset. Change frac_len accordingly when dataset changes
-fi
+# fi
 
 if [ -d "ranking/$OUTDIR" ]; then
     echo "Directory ranking/$OUTDIR already exists, skipping ranking"
