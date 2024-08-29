@@ -82,10 +82,8 @@ if [ -d "ranking/$OUTDIR" ]; then
 else
     (
         data_frac=0
-        # for gpu_id in ${AVAILABLE_GPUS[@]}; do
-        for gpu_id in 0; do
-            # CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_pairrm_llama.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}.txt 2>&1 &
-            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_pairrm_llama.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank1.txt
+        for gpu_id in ${AVAILABLE_GPUS[@]}; do
+            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_pairrm_llama.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}.txt 2>&1 &
             ((data_frac+=1));
         done
         wait

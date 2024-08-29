@@ -63,7 +63,7 @@ def from_ranks(args):
         for i in range(pairs):
             for j in range(pairs):
                 # exp(s(i,j)) / 1 + exp(s(i,j))
-                weighted_score = (table[i][j] - table[j][i]) / 2
+                weighted_score = table[i][j] - table[j][i]
                 prb[i][j] = np.exp(weighted_score) / (1 + np.exp(weighted_score))
         
         prb = prb.tolist()
@@ -135,7 +135,7 @@ def prepare_score(args):
 
     # Determine output directory
     output_dir = '-'.join(args.output_dir.split('-')[1:])
-    OUTPATH = f'synthetic_data_{output_dir}_score{SUFFIX}'
+    OUTPATH = f'synthetic_data_{output_dir}_score'
     os.makedirs(OUTPATH, exist_ok=True)
 
     # Save train and test datasets to parquet files

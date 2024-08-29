@@ -37,7 +37,8 @@ class Ranker:
     def rank(self, 
         prompt: List[str], 
         candidates: List[List[str]],
-        batch_size: int = 1
+        batch_size: int = 1,
+        return_raw_table: bool = False
     ) -> np.ndarray:
         """
             Rank candidates based on prompt.
@@ -46,13 +47,20 @@ class Ranker:
         """
         # 1. to batches
         scores = []
+        raw_table = []
         with torch.no_grad():
             for i in tqdm(range(0, len(prompt), batch_size), total=len(prompt)//batch_size):
                 batch = prompt[i:i+batch_size]
                 batch_candidates = candidates[i:i+batch_size]
                 pair_wise_scores = self.model.pair_wise_scores(batch, batch_candidates)
+                if return_raw_table:
+                    raw_table.append(pair_wise_scores.cpu().numpy())
+
                 scores.append(get_scores_from_cmps(pair_wise_scores.cpu().numpy()))
-        
-        return np.concatenate(scores, axis=0)
+
+        if return_raw_table:
+            return np.concatenate(scores, axis=0), np.concatenate(raw_table, axis=0)
+        else:
+            return np.concatenate(scores, axis=0)
 
                 

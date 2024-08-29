@@ -26,13 +26,14 @@ def ranking(args, prompts, candidates):
     from RMs.ranker import Ranker
 
     model_name = "RLHFlow/pair-preference-model-LLaMA3-8B"
-    rm = PairPreferenceLlama(model_name, f"cuda:{args.gpu}")
+    rm = PairPreferenceLlama(model_name, f"cuda")
     ranker = Ranker(rm)
 
-    ranks = ranker.rank(prompts, candidates, batch_size=1)
-    print(ranks)
-    print(ranks.shape)
+    print(f"Ranking {len(prompts)} prompts with {len(candidates[0])} candidates each")
+    ranks, raw_table = ranker.rank(prompts, candidates, batch_size=1, return_raw_table=True)
+
     np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}.npy", ranks)
+    np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}_table.npy", raw_table)
 
 
 def split_prompts(prompts, frac_len, data_frac):
@@ -51,7 +52,6 @@ def apply_template(text, tokenizer):
         [{"role": "user", "content": text}, {"role": "assistant", "content": "None"}],
         tokenize=False, add_generate_prompt=True
     ).split("None")[0]
-
 
 
 def main(args):
@@ -80,11 +80,10 @@ def main(args):
             all_generated.append(gen)
 
     candidates_texts = list(zip(*all_generated))
-    # assert len(data) == len(candidates_texts)
 
-    # xkp: 0821, disable full dataset checking, to allow using partial data for testing
-    print(len(candidates_texts), len(data))
-    data = data[:len(candidates_texts)]
+    assert len(data) == len(candidates_texts)
+    # NOTE
+    # data = data[:len(candidates_texts)]
     print(f'Length of data: {len(data)}')
 
     data_frac = args.data_frac

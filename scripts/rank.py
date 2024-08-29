@@ -54,7 +54,6 @@ def apply_template(text, tokenizer):
     ).split("None")[0]
 
 
-
 def main(args):
     data = load_dataset(args.prompts, split="train")
 

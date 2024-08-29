@@ -55,7 +55,7 @@ class RewardModel:
         """
             Format input for model.
             Args:
-            - formatted: (bsz, num_candidates * (num_candidates-1))
+            - formatted: (num_candidates * (num_candidates-1), bsz)
 
             Returns:
             - inputs: output of tokenizer of RMs
@@ -73,8 +73,8 @@ class RewardModel:
         """
         # from group by batch to group by pair
         regrouped = []
-        for i in range(len(formatted[0])):
-            regrouped.append([formatted[j][i] for j in range(len(formatted))])
+        for i in range(len(formatted[0])):  # i: batch index
+            regrouped.append([formatted[j][i] for j in range(len(formatted))])  # j: pair index
         return regrouped
 
     def get_scores(self, inputs):
@@ -96,7 +96,8 @@ class PairPreferenceLlama(RewardModel):
     PLAIN_TEMPLATE="\n{% for message in messages %}{% if loop.index0 % 2 == 0 %}\n\n<turn> user\n {{ message['content'] }}{% else %}\n\n<turn> assistant\n {{ message['content'] }}{% endif %}{% endfor %}\n\n\n"
     PROMPT_TEMPLATE="[CONTEXT] {context} [RESPONSE A] {response_A} [RESPONSE B] {response_B} \n"
     def __init__(self, model_name: str, device: str = "cuda:0"):
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
+        # laod as fp16
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
         self.tokenizer_plain = AutoTokenizer.from_pretrained(model_name, use_fast=True)
         self.tokenizer_plain.chat_template = self.PLAIN_TEMPLATE    # for formatting the context
@@ -113,9 +114,10 @@ class PairPreferenceLlama(RewardModel):
         self.model.eval()
 
     def format_pair(self, prompt: List[str], candidate: List[List[str]]):
+        all_prompt = prompt
         formatted = []
         for batch_idx in range(len(prompt)):
-            prompt_text = prompt[batch_idx]
+            prompt_text = all_prompt[batch_idx]
             candidates = candidate[batch_idx]
             batch_formatted = []
             for i in range(len(candidates)):
@@ -131,6 +133,7 @@ class PairPreferenceLlama(RewardModel):
                         ]
                         message_str = self.tokenizer.apply_chat_template(message, tokenize=False).replace(self.tokenizer.bos_token, "")
                         batch_formatted.append(message_str)
+            
             formatted.append(batch_formatted)
 
         return formatted
@@ -138,7 +141,7 @@ class PairPreferenceLlama(RewardModel):
     def format_input(self, formatted: List[List[str]]):
         # apply left padding to align the output logits
         inputs = []
-        for batch in formatted:
+        for i, batch in enumerate(formatted):
             inputs.append(self.tokenizer(batch, padding=True, return_tensors="pt", add_special_tokens=False))
         return inputs
 
@@ -154,6 +157,7 @@ class PairPreferenceLlama(RewardModel):
                 logits_A = logits[:, self.token_id_A]
                 logits_B = logits[:, self.token_id_B]
                 scores.append(logits_A - logits_B)
+
             scores = torch.stack(scores, dim=1)
         
         return scores
