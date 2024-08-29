@@ -69,22 +69,23 @@ else
     wait $all_gen
 
     python3 scripts/combine_generate.py --output_dir "generated/$OUTDIR" --gpu_ids "$(IFS=, ; echo "${AVAILABLE_GPUS[*]}")" --pairs $PAIRS
+
+    #####################
+    # Rank Data
+    #####################
+
+    # frac length 2600 * num_gpus 8 = 20800, should be larger than the length of the dataset. Change frac_len accordingly when dataset changes
 fi
 
-#####################
-# Rank Data
-#####################
-
-# frac length 2600 * num_gpus 8 = 20800, should be larger than the length of the dataset. Change frac_len accordingly when dataset changes
 if [ -d "ranking/$OUTDIR" ]; then
     echo "Directory ranking/$OUTDIR already exists, skipping ranking"
 else
-    python3 scripts/preload.py
-
     (
         data_frac=0
-        for gpu_id in ${AVAILABLE_GPUS[@]}; do
-            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}.txt 2>&1 &
+        # for gpu_id in ${AVAILABLE_GPUS[@]}; do
+        for gpu_id in 0; do
+            # CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_pairrm_llama.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}.txt 2>&1 &
+            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_pairrm_llama.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank1.txt
             ((data_frac+=1));
         done
         wait
@@ -93,6 +94,5 @@ else
 
     wait $all_rank
 fi
-
 
 python3 scripts/compute_prob_from_raw.py --org $HF_ORG --gpu_ids "$(IFS=, ; echo "${AVAILABLE_GPUS[*]}")" --output_dir $OUTDIR --pairs $PAIRS --frac_len $FRAC_LEN --prompts $PROMPTS
