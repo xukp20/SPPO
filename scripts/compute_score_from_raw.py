@@ -1,10 +1,12 @@
--import numpy as np
+import numpy as np
 from datasets import load_dataset, Dataset
 import json
 import argparse
 import pandas as pd
 import datasets
 import os
+
+SUFFIX="_table"
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -30,6 +32,7 @@ def from_ranks(args):
     print(f"Length of dataset: {len(data)}")
 
     scores = [0 for _ in range(len(data))]
+    tables = [0 for _ in range(len(data))]
     if args.gpu_ids is not None:
         gpus = args.gpu_ids.strip("()").split(',')
     else:
@@ -40,20 +43,38 @@ def from_ranks(args):
         locals = list(locals)
         for lidx, sc in enumerate(locals):
             scores[data_frac * args.frac_len + lidx] = sc
+        # load from raw table of scores
+        locals = np.load(f"ranking/{args.output_dir}/{idx}_{data_frac}{SUFFIX}.npy")
+        locals = list(locals)
+        for lidx, sc in enumerate(locals):
+            tables[data_frac * args.frac_len + lidx] = sc
 
     probs = []
     rm_scores = []
     for idx, score in enumerate(scores):
+        # prb = np.zeros((pairs, pairs))
+        # for i in range(pairs):
+        #     for j in range(pairs):
+        #         prb[i][j] = 1 / (1 + np.exp(score[j] - score[i]))
+
+        # use raw table to compute probabilities
         prb = np.zeros((pairs, pairs))
+        table = tables[idx]
         for i in range(pairs):
             for j in range(pairs):
-                prb[i][j] = 1 / (1 + np.exp(score[j] - score[i]))
+                # exp(s(i,j)) / 1 + exp(s(i,j))
+                weighted_score = table[i][j] - table[j][i]
+                # prb[i][j] = np.exp(weighted_score) / (1 + np.exp(weighted_score))
+
+                # directly use the table as prob (actually score)
+                prb[i][j] = weighted_score
+
         prb = prb.tolist()
         probs.append(prb)
         rm_scores.append(score)
 
     print("Saving probabilities...")
-    with open(f"generated/{args.output_dir}/probabilities.json", "w") as f:
+    with open(f"generated/{args.output_dir}/probabilities{SUFFIX}.json", "w") as f:
         json.dump(probs, f)
 
     df = data.to_pandas()
@@ -71,7 +92,7 @@ def from_ranks(args):
 
     df["probability"] = probs
     df["rm_scores"] = rm_scores
-    df.to_parquet(f"generated/{args.output_dir}/train.parquet")
+    df.to_parquet(f"generated/{args.output_dir}/train{SUFFIX}.parquet")
 
 
 import numpy as np
@@ -81,8 +102,13 @@ import datasets
 
 def prepare_score(args):
     # Load dataset and convert to DataFrame
-    train = datasets.load_dataset(f"generated/{args.output_dir}")
-    train = pd.DataFrame(train['train'])
+    train = datasets.load_dataset(f"generated/{args.output_dir}", data_files={
+        f"train{SUFFIX}": "train{}.parquet".format(SUFFIX),
+    })
+    print(f"Loaded dataset from generated/{args.output_dir}")
+    print(train)
+
+    train = pd.DataFrame(train[f"train{SUFFIX}"])
 
     # Calculate metrics and probabilities
     metrics = train['rm_scores'].apply(lambda x: np.array(x[-5:]))
@@ -110,6 +136,10 @@ def prepare_score(args):
         'chosen_probs_lose': chosen_probs_lose
     })
 
+    # Print the average probabilities for win, lose
+    print(f"Average probability for win: {np.mean(chosen_probs_win)}")
+    print(f"Average probability for lose: {np.mean(chosen_probs_lose)}")
+
     # Determine output directory
     output_dir = '-'.join(args.output_dir.split('-')[1:])
     OUTPATH = f'synthetic_data_{output_dir}_score'
@@ -128,25 +158,25 @@ def prepare_score(args):
 
     return OUTPATH
 
-def push_dataset(file_dir, org):
-    data = Dataset.from_parquet(f"{file_dir}/train.parquet")
-    try:
-        test = Dataset.from_parquet(f"{file_dir}/test.parquet")
-    except:
-        train = pd.read_parquet(f"{file_dir}/train.parquet")
-        # Temporary solution to make the code run, cannot use for test/evaluation purpose
-        test = train.sample(n=500)
-        test.to_parquet(f"{file_dir}/test.parquet", index=False)
-        test = Dataset.from_parquet(f"{file_dir}/test.parquet")
-    data.push_to_hub(f"{org}/{file_dir}", split="train", private=True)
-    test.push_to_hub(f"{org}/{file_dir}", split="test", private=True)
+# def push_dataset(file_dir, org):
+#     data = Dataset.from_parquet(f"{file_dir}/train.parquet")
+#     try:
+#         test = Dataset.from_parquet(f"{file_dir}/test.parquet")
+#     except:
+#         train = pd.read_parquet(f"{file_dir}/train.parquet")
+#         # Temporary solution to make the code run, cannot use for test/evaluation purpose
+#         test = train.sample(n=500)
+#         test.to_parquet(f"{file_dir}/test.parquet", index=False)
+#         test = Dataset.from_parquet(f"{file_dir}/test.parquet")
+#     data.push_to_hub(f"{org}/{file_dir}", split="train", private=True)
+#     test.push_to_hub(f"{org}/{file_dir}", split="test", private=True)
 
 
 
 if __name__ == "__main__":
     args = parse_arguments()
     from_ranks(args)
-    data = Dataset.from_parquet(f"generated/{args.output_dir}/train.parquet")
+    # data = Dataset.from_parquet(f"generated/{args.output_dir}/train{SUFFIX}.parquet")
     # data.push_to_hub(f"{args.org}/{args.output_dir}_generated", private=True)
     out_path = prepare_score(args)
     # push_dataset(out_path, args.org)

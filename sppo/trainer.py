@@ -877,6 +877,10 @@ class SPPOTrainer(Trainer):
             loss_w = (logits_w - (1 / self.beta)*(chosen_probs_win - 0.5)) ** 2
             loss_l = (logits_l - (1 / self.beta)*(chosen_probs_lose - 0.5)) ** 2
             losses = (loss_w + loss_l)/2
+        elif self.loss_type == "sppo_score":
+            loss_w = (logits_w - (1 / self.beta)*(chosen_probs_win)) ** 2
+            loss_l = (logits_l - (1 / self.beta)*(chosen_probs_lose)) ** 2
+            losses = (loss_w + loss_l)/2
         elif self.loss_type == "sppo_single":
             loss_w = (logits_w - (1 / self.beta)*(chosen_probs - 0.5)) ** 2
             loss_l = (logits_l + (1 / self.beta)*(chosen_probs - 0.5)) ** 2
