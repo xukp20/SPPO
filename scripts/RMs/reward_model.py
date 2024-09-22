@@ -377,11 +377,8 @@ class CustomPairPreferenceModel(RewardModel):
                     if i != j:
                         reward_i = rewards_cache[i]
                         reward_j = rewards_cache[j]
-                        print(reward_i.shape)
                         score = self.calculate_score(reward_i, reward_j)
                         score_list.append(score)
-                        print(score.shape)
-                        print(len(score_list))
 
             scores = torch.stack(score_list, dim=1)
         
