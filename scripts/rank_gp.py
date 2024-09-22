@@ -26,14 +26,16 @@ def ranking(args, prompts, candidates):
     from RMs.reward_model import CustomPairPreferenceModel
     from RMs.ranker import Ranker
 
-    model_name = "TODO"
-    configs = "TODO"
+    # load rm settings from envs
+    model_name = os.environ.get("RM_MODEL_NAME")
+    configs = json.loads(os.environ.get("RM_CONFIGS"))
+
     rm = CustomPairPreferenceModel(model_name, **configs, device="cuda")
     ranker = Ranker(rm)
 
     print(f"Ranking {len(prompts)} prompts with {len(candidates[0])} candidates each")
     ranks, raw_table = ranker.rank(prompts, candidates, batch_size=1, return_raw_table=True)
-    
+
     np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}.npy", ranks)
     np.save(f"ranking/{args.output_dir}/{args.gpu}_{args.data_frac}_table.npy", raw_table)
 

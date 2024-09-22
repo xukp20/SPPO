@@ -78,12 +78,15 @@ else
 fi
 
 if [ -d "ranking/$OUTDIR" ]; then
+# if [ 0 == 1 ]; then
     echo "Directory ranking/$OUTDIR already exists, skipping ranking"
 else
     (
         data_frac=0
         for gpu_id in ${AVAILABLE_GPUS[@]}; do
+        # for gpu_id in 0; do
             CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_gp.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}.txt 2>&1 &
+            # CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_gp.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS
             ((data_frac+=1));
         done
         wait

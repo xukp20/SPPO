@@ -312,7 +312,7 @@ def _get_reward_model(base_causal_model, base_llm_model, is_general_preference: 
     return CustomRewardModel
 
 class CustomPairPreferenceModel(RewardModel):
-    def __init__(self, model_name: str, use_flash_attn: bool=True, bf16: bool=True, is_general_preference: bool=False, value_head_dim: int=2, add_prompt_head: bool=False, device: str = "cuda:0"):
+    def __init__(self, model_name: str, use_flash_attn: bool=False, bf16: bool=True, is_general_preference: bool=False, value_head_dim: int=2, add_prompt_head: bool=False, device: str = "cuda:0"):
         self.model =  get_reward_model(
             model_name,
             use_flash_attention_2=use_flash_attn,
@@ -328,6 +328,8 @@ class CustomPairPreferenceModel(RewardModel):
     
         self.model.to(device)
         self.model.eval()
+
+        print(f"Model loaded: {model_name}")
 
         
     def format_pair(self, prompt: List[str], candidate: List[List[str]]):
@@ -346,6 +348,7 @@ class CustomPairPreferenceModel(RewardModel):
                 batch_formatted.append(context_str)
             
             formatted.append(batch_formatted)
+
         return formatted
 
     def format_input(self, formatted: List[List[str]]):
@@ -353,6 +356,7 @@ class CustomPairPreferenceModel(RewardModel):
         inputs = []
         for i, batch in enumerate(formatted):
             inputs.append(self.tokenizer(batch, padding=True, truncation=False, return_tensors="pt", add_special_tokens=False))
+        
         return inputs
 
     def get_scores(self, inputs):
@@ -373,18 +377,24 @@ class CustomPairPreferenceModel(RewardModel):
                     if i != j:
                         reward_i = rewards_cache[i]
                         reward_j = rewards_cache[j]
+                        print(reward_i.shape)
                         score = self.calculate_score(reward_i, reward_j)
                         score_list.append(score)
+                        print(score.shape)
+                        print(len(score_list))
 
-            scores = torch.stack(score_list).squeeze(-1).unsqueeze(0)
+            scores = torch.stack(score_list, dim=1)
+        
         return scores
     
     def calculate_score(self, chosen, rejected, prompt_hidden_state=None):        
         if self.is_general_preference:
             if self.value_head_dim == 2:
-                chosen = chosen.squeeze(0)
-                rejected = rejected.squeeze(0)
-                score = chosen[0] * rejected[1] - chosen[1] * rejected[0] 
+                # chosen = chosen.squeeze(0)
+                # rejected = rejected.squeeze(0)
+                # score = chosen[0] * rejected[1] - chosen[1] * rejected[0]
+                # xkp: 2024/9/22, handle bsz
+                score = chosen[:, 0] * rejected[:, 1] - chosen[:, 1] * rejected[:, 0]
             elif not hasattr(self.model, 'prompt_head'):
                 score = self.generate_high_dim_result(self.value_head_dim, chosen, rejected)
             else:    
@@ -471,6 +481,8 @@ class PairPreferenceLlama(RewardModel):
         return inputs
 
     def get_scores(self, inputs):
+        # inputs: num_candidates * (num_candidates-1), bsz
+
         with torch.no_grad():
             scores = []
             for batch_inputs in inputs:
@@ -480,7 +492,7 @@ class PairPreferenceLlama(RewardModel):
                 logits = outputs.logits[:, -1]
                 # take out the logit for logits_A and logits_B
                 logits_A = logits[:, self.token_id_A]
-                logits_B = logits[:, self.token_id_B]
+                logits_B = logits[:, self.token_id_B]   # (bsz,)
                 scores.append(logits_A - logits_B)
 
             scores = torch.stack(scores, dim=1)

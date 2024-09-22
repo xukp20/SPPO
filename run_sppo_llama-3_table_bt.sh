@@ -5,17 +5,17 @@ export https_proxy="http://127.0.0.1:7890"
 
 
 # iter_num=3
-RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau01_no_sft_1e5_sky80k/"
+RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau1_no_sft_1e5_skywork80k_bt/"
 # set RM_CONFIGS as a json string
-RM_CONFIGS="{\"is_general_preference\": true}"
+RM_CONFIGS="{\"is_general_preference\": false}"
 
-RM_MODEL_SUFFIX="gp_2b"
+RM_MODEL_SUFFIX="bt_2b"
 SUFFIX="_${RM_MODEL_SUFFIX}"
 export RM_MODEL_NAME    
 export SUFFIX
 export RM_CONFIGS
 
-start_iter=2
+start_iter=1
 iter_num=3
 for i in $(seq 1 $iter_num); do
     if [ "$i" -eq 1 ]; then
