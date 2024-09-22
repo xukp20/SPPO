@@ -5,10 +5,14 @@ export https_proxy="http://127.0.0.1:7890"
 
 
 # iter_num=3
-beta=0.1
+if [ -z $beta ]; then
+    beta=0.001
+fi
+echo "beta: $beta"
+
 export BETA=$beta
 
-start_iter=2
+start_iter=1
 iter_num=3
 for i in $(seq 1 $iter_num); do
     if [ "$i" -eq 1 ]; then
