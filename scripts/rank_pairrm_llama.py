@@ -22,11 +22,18 @@ def parse_arguments():
     return parser.parse_args()
 
 def ranking(args, prompts, candidates):
-    from RMs.reward_model import PairPreferenceLlama
+    from RMs.reward_model import PairPreferenceLlama, CustomPairPreferenceModel
     from RMs.ranker import Ranker
 
-    model_name = "RLHFlow/pair-preference-model-LLaMA3-8B"
-    rm = PairPreferenceLlama(model_name, f"cuda")
+    # model_name = "RLHFlow/pair-preference-model-LLaMA3-8B"
+    # rm = PairPreferenceLlama(model_name, f"cuda")
+    
+    # model_name = "/cephfs/shared/hf_cache/hub/models--RLHFlow--pair-preference-model-LLaMA3-8B/snapshots/e27e178ed69e50c69b2fd840cec57bd27f105aaa"
+    # rm = PairPreferenceLlama(model_name, f"cuda")
+    
+    model_name = "/cephfs/zhangge/root/code/sqz_general_preference/results/saved_model/2b_gemma_it/rm/batch32_tau01_no_sft_1e5_skywork80k_vh4"
+    rm = CustomPairPreferenceModel(model_name, use_flash_attn=False, bf16=True, is_general_preference=True, value_head_dim=4, add_prompt_head=True)
+    
     ranker = Ranker(rm)
 
     print(f"Ranking {len(prompts)} prompts with {len(candidates[0])} candidates each")
@@ -57,12 +64,16 @@ def apply_template(text, tokenizer):
 def main(args):
     data = load_dataset(args.prompts, split="train")
 
+    #### This is for test
+    data = data.select([0, 1, 2])
+    
     if "mistral" in args.model.lower():
         tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
     elif "llama-3" in args.model.lower():
         tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
     elif "gemma-2" in args.model.lower():
-        tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-9b-it")
+        # tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-9b-it")
+        tokenizer = AutoTokenizer.from_pretrained("/cephfs/shared/hf_cache/hub/models--google--gemma-2b-it/snapshots/1027d96c1638a27f01ae935cd98bac7d1a01686c")
     else:
         raise ValueError("Must contain model name in the dataset name. Supported models: Mistral/Llama-3")
 
