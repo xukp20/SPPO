@@ -478,6 +478,9 @@ class CustomPairPreferenceModel(RewardModel):
         for i in range(num_candidates):
             scores_matrix[:, i, :i] = scores[:, i, :i]
             scores_matrix[:, i, i+1:] = scores[:, i, i:]
+            
+        if not self.add_prompt_head and self.is_general_preference:
+            scores_matrix = scores_matrix / 0.1
 
         return scores_matrix
         
