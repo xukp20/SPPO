@@ -312,7 +312,7 @@ def _get_reward_model(base_causal_model, base_llm_model, is_general_preference: 
     return CustomRewardModel
 
 class CustomPairPreferenceModel(RewardModel):
-    def __init__(self, model_name: str, use_flash_attn: bool=False, bf16: bool=True, is_general_preference: bool=False, value_head_dim: int=2, add_prompt_head: bool=False, device: str = "cuda:0"):
+    def __init__(self, model_name: str, use_flash_attn: bool=False, bf16: bool=True, is_general_preference: bool=False, value_head_dim: int=2, add_prompt_head: bool=False, tau: int=1, device: str = "cuda:0"):
         self.model =  get_reward_model(
             model_name,
             use_flash_attention_2=use_flash_attn,
@@ -325,11 +325,16 @@ class CustomPairPreferenceModel(RewardModel):
         self.is_general_preference = is_general_preference
         self.value_head_dim = value_head_dim
         self.add_prompt_head = add_prompt_head
+        self.tau = tau
     
         self.model.to(device)
         self.model.eval()
 
         print(f"Model loaded: {model_name}")
+        print(f"Using General Preference model: {is_general_preference}")
+        print(f"Value head dimension: {value_head_dim}")
+        print(f"Add prompt head: {add_prompt_head}")
+        print(f"Tau: {tau}")
 
         
     def format_pair(self, prompt: List[str], candidate: List[List[str]]):
@@ -396,6 +401,8 @@ class CustomPairPreferenceModel(RewardModel):
                 score = self.generate_high_dim_result(self.value_head_dim, chosen, rejected)
             else:    
                 score = self.generate_high_dim_result_with_prompt(self.model, self.value_head_dim, chosen, rejected, prompt_hidden_state)
+            if not self.add_prompt_head:
+                score = score / self.tau
         else:
             score = chosen - rejected
         return score

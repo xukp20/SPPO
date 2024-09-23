@@ -54,12 +54,13 @@ echo "Using frac_len ${FRAC_LEN}"
 
 # check if the output directory exists, if so, skip generating data
 if [ -d "generated/$OUTDIR" ]; then
+# if [ 0 == 1 ]; then
     echo "Directory generated/$OUTDIR already exists, skipping generation"
 else
     (
         data_frac=0
         for gpu_id in ${AVAILABLE_GPUS[@]}; do
-            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/generate.py --model $MODEL --maxlen 2048 --output_dir "generated/$OUTDIR" --prompts $PROMPTS --pairs $PAIRS --world_size 1 --frac_len $FRAC_LEN --data_frac $data_frac > output_log_${gpu_id}.txt 2>&1 &
+            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/generate.py --model $MODEL --maxlen 2048 --output_dir "generated/$OUTDIR" --prompts $PROMPTS --pairs $PAIRS --world_size 1 --frac_len $FRAC_LEN --data_frac $data_frac > output_log_${gpu_id}$SUFFIX.txt 2>&1 &
             ((data_frac+=1));
         done
         wait
@@ -85,7 +86,7 @@ else
         data_frac=0
         for gpu_id in ${AVAILABLE_GPUS[@]}; do
         # for gpu_id in 0; do
-            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_gp.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}.txt 2>&1 &
+            CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_gp.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS > rank_log_${gpu_id}$SUFFIX.txt 2>&1 &
             # CUDA_VISIBLE_DEVICES=$gpu_id python3 scripts/rank_gp.py --model $MODEL --output_dir $OUTDIR --pairs $PAIRS --numgpu ${#AVAILABLE_GPUS[@]} --frac_len $FRAC_LEN --data_frac $data_frac --gpu $gpu_id --prompts $PROMPTS
             ((data_frac+=1));
         done

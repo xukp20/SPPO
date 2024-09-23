@@ -5,13 +5,11 @@ export https_proxy="http://127.0.0.1:7890"
 
 
 # iter_num=3
-# RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau1_no_sft_1e5_skywork80k_bt/"
-RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/8b_llama31/batch32_tau1_no_sft_2e6_sky80k_bt_epoch2"
-
+RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau01_no_sft_1e5_sky80k/"
 # set RM_CONFIGS as a json string
-RM_CONFIGS="{\"is_general_preference\": false}"
+RM_CONFIGS="{\"is_general_preference\": true, \"tau\": 0.1}"
 
-RM_MODEL_SUFFIX="bt_8b"
+RM_MODEL_SUFFIX="gp_2b_tau01"
 SUFFIX="_${RM_MODEL_SUFFIX}"
 export RM_MODEL_NAME    
 export SUFFIX
@@ -20,6 +18,7 @@ export RM_CONFIGS
 start_iter=1
 iter_num=3
 for i in $(seq 1 $iter_num); do
+    echo "iter $i"
     if [ "$i" -eq 1 ]; then
         MODEL="meta-llama/Meta-Llama-3-8B-Instruct"
     else
