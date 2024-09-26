@@ -399,8 +399,7 @@ class CustomPairPreferenceModel(RewardModel):
                 score = self.generate_high_dim_result(self.value_head_dim, chosen, rejected)
             else:    
                 score = self.generate_high_dim_result_with_prompt(self.model, self.value_head_dim, chosen, rejected, prompt_hidden_state)
-            if not self.add_prompt_head:
-                score = score / self.tau
+            score = score / self.tau
         else:
             score = chosen - rejected
         return score
