@@ -1,4 +1,2 @@
-for b in 0.003 0.03; do
-    export beta=$b
-    bash run_sppo_score_llama-3_table.sh
-done
+beta=0.002 clamp_thres=1000 bash run_sppo_score_llama-3_table_bt.sh
+beta=0.002 clamp_thres=1000 bash run_sppo_score_llama-3_table_gp.sh

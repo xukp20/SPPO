@@ -401,6 +401,13 @@ class SPPOTrainer(Trainer):
             else:
                 self.ref_model = self.accelerator.prepare_model(self.ref_model, evaluation_mode=True)
 
+        # xkp: 2024/9/24 add clamp settings for sppo score
+        import os
+        self.clamp_thres = os.getenv('CLAMP_THRES', None)
+        if self.clamp_thres:
+            self.clamp_thres = float(self.clamp_thres)
+            print(f'clamp_thres: {self.clamp_thres}')
+
     def _prepare_deepspeed(self, model: PreTrainedModelWrapper):
         # Adapted from accelerate: https://github.com/huggingface/accelerate/blob/739b135f8367becb67ffaada12fe76e3aa60fefd/src/accelerate/accelerator.py#L1473
         deepspeed_plugin = self.accelerator.state.deepspeed_plugin
@@ -878,8 +885,15 @@ class SPPOTrainer(Trainer):
             loss_l = (logits_l - (1 / self.beta)*(chosen_probs_lose - 0.5)) ** 2
             losses = (loss_w + loss_l)/2
         elif self.loss_type == "sppo_score":
-            loss_w = (logits_w - (1 / self.beta)*(chosen_probs_win)) ** 2
-            loss_l = (logits_l - (1 / self.beta)*(chosen_probs_lose)) ** 2
+            win_score = (1 / self.beta)*(chosen_probs_win)
+            lose_score = (1 / self.beta)*(chosen_probs_lose)
+            if self.clamp_thres is not None:
+                # in [-clamp_thres, clamp_thres]
+                win_score = torch.clamp(win_score, -self.clamp_thres, self.clamp_thres)
+                lose_score = torch.clamp(lose_score, -self.clamp_thres, self.clamp_thres)
+
+            loss_w = (logits_w - win_score) ** 2
+            loss_l = (logits_l - lose_score) ** 2
             losses = (loss_w + loss_l)/2
         elif self.loss_type == "sppo_single":
             loss_w = (logits_w - (1 / self.beta)*(chosen_probs - 0.5)) ** 2
