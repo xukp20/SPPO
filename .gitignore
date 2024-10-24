@@ -319,7 +319,7 @@ old_data/
 checkpoints/
 *.log
 output_*
-rank_*
+rank_log*
 /scripts/generated
 /scripts/ranking
 

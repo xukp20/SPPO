@@ -428,6 +428,44 @@ class CustomPairPreferenceModel(RewardModel):
             score = chosen - rejected
         return score
     
+    def pair_wise_scores(self, prompt: List[str], candidates: List[List[str]]):
+        """
+            Compute pairwise scores for prompt and candidates.
+            Args:
+            - prompt: (n, )
+            - candidates: (n, num_candidates)
+
+            Returns:
+            - scores: (n, num_candidates, num_candidates) for each candidate pair
+        """
+        bsz = len(prompt)
+        num_candidates = len(candidates[0])
+
+        if not self.add_prompt_head:
+            formatted = self.format_pair(prompt, candidates)    # size of (bsz, num_candidates * (num_candidates-1))
+            formatted = self.regroup_formatted(formatted)       # size of (num_candidates * (num_candidates-1), bsz)
+
+            inputs = self.format_input(formatted)   # size of bsz * dict
+
+            scores = self.get_scores(inputs)
+        else:
+            formatted, response_lengths = self.format_pair(prompt, candidates)    # size of (bsz, num_candidates * (num_candidates-1))
+            formatted = self.regroup_formatted(formatted)       # size of (num_candidates * (num_candidates-1), bsz)
+            response_lengths = self.regroup_formatted(response_lengths)
+            
+            inputs = self.format_input(formatted)   # size of bsz * dict
+            
+            scores = self.get_scores(inputs, response_lengths)
+            
+        scores_matrix = torch.zeros(bsz, num_candidates, num_candidates)
+        # reshape scores as (bsz, num_candidates, (num_candidates-1))
+        scores = scores.view(bsz, num_candidates, num_candidates-1)
+        for i in range(num_candidates):
+            scores_matrix[:, i, :i] = scores[:, i, :i]
+            scores_matrix[:, i, i+1:] = scores[:, i, i:]
+
+        return scores_matrix
+  
     def generate_high_dim_result(self, value_head_dim, chosen_reward, rejected_reward):
         R_matrix = torch.zeros((value_head_dim, value_head_dim), device=chosen_reward.device, dtype=chosen_reward.dtype)
         for i in range(0, value_head_dim, 2):
