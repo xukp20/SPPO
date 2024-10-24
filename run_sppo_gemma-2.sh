@@ -1,4 +1,8 @@
 #!/bin/bash
+export HF_HOME="/cephfs/shared/hf_cache"
+export http_proxy="http://127.0.0.1:7890"
+export https_proxy="http://127.0.0.1:7890"
+
 iter_num=3
 for i in $(seq 1 $iter_num); do
     if [ "$i" -eq 1 ]; then

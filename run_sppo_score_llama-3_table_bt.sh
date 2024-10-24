@@ -11,6 +11,9 @@ fi
 if [ -z $lr ]; then
     lr=5e-7
 fi
+if [ -z $clamp_thres ]; then
+    clamp_thres=1000
+fi
 echo "beta: $beta"
 echo "lr: $lr"
 echo "clamp_thres: $clamp_thres"
@@ -18,13 +21,13 @@ echo "clamp_thres: $clamp_thres"
 export BETA=$beta
 export CLAMP_THRES=$clamp_thres
 
-# RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau1_no_sft_1e5_skywork80k_bt/"
-RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/8b_llama31/batch32_tau1_no_sft_2e6_sky80k_bt_epoch2"
+RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau1_no_sft_1e5_sky80k_bt_epoch2"
+# RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/8b_llama31/batch32_tau1_no_sft_2e6_sky80k_bt_epoch2"
 
 # set RM_CONFIGS as a json string
 RM_CONFIGS="{\"is_general_preference\": false}"
 
-RM_MODEL_SUFFIX="bt_8b"
+RM_MODEL_SUFFIX="bt_2b"
 
 LR_SUFFIX=""
 if [ "$lr" != "5e-7" ]; then
@@ -35,7 +38,7 @@ export RM_MODEL_NAME
 export SUFFIX
 export RM_CONFIGS
 
-start_iter=3
+start_iter=1
 iter_num=3
 for i in $(seq 1 $iter_num); do
     if [ "$i" -eq 1 ]; then
