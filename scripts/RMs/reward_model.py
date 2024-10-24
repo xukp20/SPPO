@@ -334,14 +334,15 @@ class CustomPairPreferenceModel(RewardModel):
         print(f"Add prompt head: {add_prompt_head}")
         print(f"Tau: {tau}")
 
-        
     def format_pair(self, prompt: List[str], candidate: List[List[str]]):
         all_prompt = prompt
         formatted = []
+        response_lengths = []
         for batch_idx in range(len(prompt)):
             prompt_text = all_prompt[batch_idx]
             candidates = candidate[batch_idx]
             batch_formatted = []
+            batch_response_length = []
             for i in range(len(candidates)):
                 context = [
                     {"role": "user", "content": prompt_text},
@@ -349,11 +350,24 @@ class CustomPairPreferenceModel(RewardModel):
                 ]
                 context_str = self.tokenizer.apply_chat_template(context, tokenize=False).replace(self.tokenizer.bos_token, "")
                 batch_formatted.append(context_str)
-            
+                if self.add_prompt_head:
+                    prompt = [
+                        {"role": "user", "content": prompt_text}
+                    ]
+                    prompt_str = self.tokenizer.apply_chat_template(prompt, tokenize=False).replace(self.tokenizer.bos_token, "")
+                    context_length = self.tokenizer(context_str, padding=False, truncation=False, return_tensors="pt", add_special_tokens=False)["attention_mask"].sum()
+                    prompt_length = self.tokenizer(prompt_str, padding=False, truncation=False, return_tensors="pt", add_special_tokens=False)["attention_mask"].sum()
+                    response_length = context_length - prompt_length
+                    batch_response_length.append(response_length)
+
             formatted.append(batch_formatted)
-
-        return formatted
-
+            response_lengths.append(batch_response_length)
+            
+        if self.add_prompt_head:
+            return formatted, response_lengths
+        else:
+            return formatted
+    
     def format_input(self, formatted: List[List[str]]):
         # apply left padding to align the output logits
         inputs = []
@@ -362,15 +376,22 @@ class CustomPairPreferenceModel(RewardModel):
         
         return inputs
 
-    def get_scores(self, inputs):
+    def get_scores(self, inputs, response_lengths=None):
         with torch.no_grad():
             score_list = []
             rewards_cache = {}
+            prompt_hidden_state_cache = {}
 
             for i in range(len(inputs)):
                 input_i = {k: v.to(self.model.device) for k, v in inputs[i].items()}
-                if hasattr(self.model, 'prompt_head'): #### need to modify
+                if hasattr(self.model, 'prompt_head'): 
                     reward_i, output_i = self.model.custom_forward(**input_i, return_output=True)
+                    response_len_i = torch.tensor(response_lengths[i]).view(-1, 1).to("cuda")   
+                    last_hidden_states_i = output_i["last_hidden_state"]
+                    prompt_end_index = last_hidden_states_i.size(1) - response_len_i - 1
+                    prompt_end_index_expanded = prompt_end_index.unsqueeze(-1).expand(-1, -1, last_hidden_states_i.size(-1))
+                    prompt_hidden_state = torch.gather(last_hidden_states_i, dim=1, index=prompt_end_index_expanded).squeeze(1)
+                    prompt_hidden_state_cache[i] = prompt_hidden_state
                 else:
                     reward_i, _ = self.model.custom_forward(**input_i)
                 rewards_cache[i] = reward_i
@@ -380,7 +401,10 @@ class CustomPairPreferenceModel(RewardModel):
                     if i != j:
                         reward_i = rewards_cache[i]
                         reward_j = rewards_cache[j]
-                        score = self.calculate_score(reward_i, reward_j)
+                        if hasattr(self.model, 'prompt_head'):
+                            score = self.calculate_score(reward_i, reward_j, prompt_hidden_state_cache[i])
+                        else:
+                            score = self.calculate_score(reward_i, reward_j)
                         score_list.append(score)
 
             scores = torch.stack(score_list, dim=1)

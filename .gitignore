@@ -311,3 +311,17 @@ scripts/test.sh
 
 # custom
 **/try.ipynb
+
+old_generated/
+old_ranking/
+old_checkpoints/
+old_data/
+checkpoints/
+*.log
+output_*
+rank_*
+/scripts/generated
+/scripts/ranking
+
+
+
