@@ -22,23 +22,21 @@ echo "clamp_thres: $clamp_thres"
 export BETA=$beta
 export CLAMP_THRES=$clamp_thres
 
-# RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau01_no_sft_1e5_sky80k/"
-RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/2b_gemma_it/batch32_tau01_no_sft_1e5_sky80k_epoch2_vh8_w_moe_w_l2"
-
-# RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/8b_llama31/batch32_tau01_no_sft_2e6_sky80k_epoch2"
-RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/8b_llama31/batch32_tau01_no_sft_2e6_sky80k_epoch2_vh6_w_moe_w_l2"
+RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/model_revise/gemma-2b-it/batch32_tau01_no_sft_1e5_sky80k_cleaned_epoch2_vh8_w_moe_w_l2"
+# RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/model_revise/Llama-31-8b-Instruct/batch32_tau01_no_sft_2e6_sky80k_cleaned_epoch2_vh4_w_moe_w_l2"
 
 # set RM_CONFIGS as a json string
-# RM_CONFIGS="{\"is_general_preference\": true, \"tau\": 0.1, \"value_head_dim\": 8}"
-RM_CONFIGS="{\"is_general_preference\": true, \"tau\": 0.1, \"value_head_dim\": 6}"
+RM_CONFIGS="{\"is_general_preference\": true, \"tau\": 0.1, \"value_head_dim\": 8, \"add_prompt_head\": true}"
+# RM_CONFIGS="{\"is_general_preference\": true, \"tau\": 0.1, \"value_head_dim\": 4, \"add_prompt_head\": true}"
 
-RM_MODEL_SUFFIX="gp_8b"
+RM_MODEL_SUFFIX="gp_2b"
+# RM_MODEL_SUFFIX="gp_8b"
+
 LR_SUFFIX=""
 if [ "$lr" != "5e-7" ]; then
     LR_SUFFIX="_${lr}"
 fi
 
-# RM_MODEL_SUFFIX="gp_2b_tau01"
 SUFFIX="_${RM_MODEL_SUFFIX}${LR_SUFFIX}"
 export RM_MODEL_NAME    
 export SUFFIX

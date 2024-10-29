@@ -30,7 +30,7 @@ export RM_MODEL_NAME
 export SUFFIX
 export RM_CONFIGS
 
-start_iter=3
+start_iter=1
 iter_num=3
 for i in $(seq 1 $iter_num); do
     if [ "$i" -eq 1 ]; then
@@ -38,7 +38,7 @@ for i in $(seq 1 $iter_num); do
     else
         MODEL=$OUTPUT_DIR
     fi
-    OUTPUT_DIR="checkpoints/Gemma-2-9B-SPPO-It-Iter${i}${SUFFIX}-table"
+    OUTPUT_DIR="checkpoints/Gemma-2-9B-It-SPPO-Iter${i}${SUFFIX}-table"
     PROMPT="UCLA-AGI/data-mistral-7b-instruct-sppo-iter${i}"
 
     OUT="data-gemma-2-9b-it-sppo-iter${i}-table${SUFFIX}"
