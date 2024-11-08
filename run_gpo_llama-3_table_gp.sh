@@ -5,10 +5,22 @@ export https_proxy="http://127.0.0.1:7890"
 
 
 # iter_num=3
+if [ -z $beta ]; then
+    beta=0.001
+fi
 if [ -z $lr ]; then
     lr=5e-7
 fi
+if [ -z $clamp_thres ]; then
+    clamp_thres=1000
+fi
+
+echo "beta: $beta"
 echo "lr: $lr"
+echo "clamp_thres: $clamp_thres"
+
+export BETA=$beta
+export CLAMP_THRES=$clamp_thres
 
 if [ $rm == "bt_2b" ]; then
     RM_MODEL_NAME="/cephfs/shared/zhangge/models/general_preference/model_revise/gemma-2b-it/batch32_tau1_no_sft_1e5_sky80k_cleaned_bt_epoch2"
@@ -44,7 +56,6 @@ if [ "$lr" != "5e-7" ]; then
     LR_SUFFIX="_${lr}"
 fi
 
-# RM_MODEL_SUFFIX="gp_2b_tau01"
 SUFFIX="_${RM_MODEL_SUFFIX}${LR_SUFFIX}"
 export RM_MODEL_NAME    
 export SUFFIX
@@ -53,22 +64,21 @@ export RM_CONFIGS
 start_iter=1
 iter_num=3
 for i in $(seq 1 $iter_num); do
-    echo "iter $i"
     if [ "$i" -eq 1 ]; then
         MODEL="meta-llama/Meta-Llama-3-8B-Instruct"
     else
         MODEL=$OUTPUT_DIR
     fi
-    OUTPUT_DIR="checkpoints/Llama-3-8B-Instruct-SPPO-Iter${i}${SUFFIX}-table"
+    OUTPUT_DIR="checkpoints/Llama-3-8B-Instruct-GPO-Iter${i}${SUFFIX}-table"
     PROMPT="UCLA-AGI/data-mistral-7b-instruct-sppo-iter${i}"
 
-    OUT="data-llama-3-8b-instruct-sppo-iter${i}-table${SUFFIX}" 
-    DATASET="synthetic_data_llama-3-8b-instruct-sppo-iter${i}-table${SUFFIX}_score"
+    OUT="data-llama-3-8b-instruct-gpo-iter${i}${SUFFIX}-table" 
+    DATASET="synthetic_data_llama-3-8b-instruct-gpo-iter${i}${SUFFIX}-table_score"
 
     if [ "$i" -lt $start_iter ]; then
         continue
     fi
     
-    bash scripts/generate_table_gp.sh --model $MODEL --prompt $PROMPT --out_path $OUT
-    bash scripts/pipeline_table.sh --model $MODEL --iter $i --dataset $DATASET --output_dir $OUTPUT_DIR --num 1 --learning_rate $lr
+    bash scripts/generate_score_table_gp.sh --model $MODEL --prompt $PROMPT --out_path $OUT
+    bash scripts/pipeline_score_table.sh --model $MODEL --iter $i --dataset $DATASET --output_dir $OUTPUT_DIR --num 1 --beta $beta --learning_rate $lr
 done

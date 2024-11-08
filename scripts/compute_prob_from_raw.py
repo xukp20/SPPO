@@ -64,7 +64,11 @@ def from_ranks(args):
             for j in range(pairs):
                 # exp(s(i,j)) / 1 + exp(s(i,j))
                 weighted_score = table[i][j] - table[j][i]
-                prb[i][j] = np.exp(weighted_score) / (1 + np.exp(weighted_score))
+                # fix overflow
+                if np.exp(weighted_score) == np.inf:
+                    prb[i][j] = 1
+                else:
+                    prb[i][j] = np.exp(weighted_score) / (1 + np.exp(weighted_score))
         
         prb = prb.tolist()
         probs.append(prb)
